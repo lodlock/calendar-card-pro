@@ -4,6 +4,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
 import esbuild from 'rollup-plugin-esbuild';
 import json from '@rollup/plugin-json';
+import gzip from 'rollup-plugin-gzip';
 import { readFileSync } from 'fs';
 
 // Use the existing NODE_ENV variable for both purposes
@@ -47,5 +48,6 @@ export default {
     resolve(),
     commonjs(),
     terser(),
+    gzip(),
   ],
 };

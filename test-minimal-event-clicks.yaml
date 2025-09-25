@@ -1,0 +1,22 @@
+# Minimal test configuration for event clicks
+type: custom:calendar-card-pro-dev
+
+# Basic configuration
+entities:
+  - calendar.famiglia
+days_to_show: 3
+
+# Event-specific actions
+event_tap_action:
+  action: call-service
+  service: system_log.write
+  service_data:
+    message: "Event tapped: {{ event_summary }}"
+    level: info
+
+event_hold_action:
+  action: call-service
+  service: system_log.write
+  service_data:
+    message: "Event held: {{ event_summary }}"
+    level: info

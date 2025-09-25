@@ -179,3 +179,96 @@ function fireDomEvent(element: Element, _ctx: Types.ActionContext): void {
   element.dispatchEvent(event);
   Logger.debug('Fired DOM event calendar-card-action');
 }
+
+/**
+ * Handle event-specific actions with event data
+ *
+ * @param actionConfig - Action configuration object
+ * @param hass - Home Assistant interface
+ * @param element - Element that triggered the action
+ * @param event - Calendar event data
+ * @param entityId - Optional entity ID for the action
+ */
+export function handleEventAction(
+  actionConfig: Types.ActionConfig,
+  hass: Types.Hass | null,
+  element: Element,
+  event: Types.CalendarEventData,
+  entityId?: string,
+): void {
+  if (!actionConfig || !hass) return;
+
+  const ctx: Types.ActionContext = {
+    element,
+    hass,
+    entityId,
+  };
+
+  // Execute different types of actions based on the configuration
+  switch (actionConfig.action) {
+    case 'more-info':
+      fireMoreInfo(entityId, ctx);
+      break;
+
+    case 'navigate':
+      if (actionConfig.navigation_path) {
+        navigate(actionConfig.navigation_path, ctx);
+      }
+      break;
+
+    case 'url':
+      if (actionConfig.url_path) {
+        openUrl(actionConfig.url_path, ctx);
+      }
+      break;
+
+    case 'toggle':
+      // For event actions, toggle doesn't make sense, so we'll just log it
+      Logger.debug('Toggle action not supported for event actions');
+      break;
+
+    case 'expand':
+      // For event actions, expand doesn't make sense, so we'll just log it
+      Logger.debug('Expand action not supported for event actions');
+      break;
+
+    case 'call-service': {
+      if (!actionConfig.service) return;
+
+      const [domain, service] = actionConfig.service.split('.', 2);
+      if (!domain || !service) return;
+
+      // Add event data to service data if available
+      const serviceData = {
+        ...actionConfig.service_data,
+        event_summary: event.summary,
+        event_location: event.location,
+        event_start: event.start.dateTime || event.start.date,
+        event_end: event.end.dateTime || event.end.date,
+      };
+
+      hass.callService(domain, service, serviceData);
+      break;
+    }
+
+    case 'fire-dom-event': {
+      // Create a custom event with event data
+      const customEvent = new CustomEvent('calendar-card-event-action', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          event: event,
+          action: actionConfig,
+        },
+      });
+      element.dispatchEvent(customEvent);
+      Logger.debug('Fired DOM event calendar-card-event-action with event data');
+      break;
+    }
+
+    case 'none':
+    default:
+      // Do nothing for 'none' action
+      break;
+  }
+}

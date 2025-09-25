@@ -1,0 +1,100 @@
+# Calendar Card Pro - Event Click Test Configuration
+# This configuration demonstrates the new event-specific click functionality
+
+type: custom:calendar-card-pro-dev
+
+# Basic configuration
+entities:
+  - calendar.family
+  - calendar.work
+  - calendar.personal
+days_to_show: 7
+title: "Calendar with Event Clicks"
+
+# Card-level actions (existing functionality)
+tap_action:
+  action: expand
+hold_action:
+  action: more-info
+
+# NEW: Event-specific actions
+event_tap_action:
+  action: call-service
+  service: browser_mod.popup
+  service_data:
+    title: "📅 Event Details"
+    content: |
+      <div style="padding: 20px; font-family: var(--primary-font-family);">
+        <h2 style="color: var(--primary-color); margin-top: 0;">{{ event_summary }}</h2>
+        
+        <div style="margin: 15px 0;">
+          <strong>🕐 Start:</strong> {{ event_start }}<br>
+          <strong>🕐 End:</strong> {{ event_end }}
+        </div>
+        
+        {% if event_location %}
+        <div style="margin: 15px 0;">
+          <strong>📍 Location:</strong> {{ event_location }}<br>
+          <a href="https://maps.google.com/?q={{ event_location }}" target="_blank" 
+             style="color: var(--primary-color); text-decoration: none;">
+            🗺️ Open in Google Maps
+          </a>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--divider-color);">
+          <button onclick="window.open('https://calendar.google.com', '_blank')" 
+                  style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px; cursor: pointer;">
+            📅 Open Calendar
+          </button>
+          <button onclick="window.close()" 
+                  style="background: var(--secondary-text-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+            ✕ Close
+          </button>
+        </div>
+      </div>
+    size: narrow
+
+event_hold_action:
+  action: call-service
+  service: browser_mod.popup
+  service_data:
+    title: "⚡ Quick Actions"
+    content: |
+      <div style="padding: 20px; font-family: var(--primary-font-family);">
+        <h3 style="color: var(--primary-color); margin-top: 0;">{{ event_summary }}</h3>
+        
+        <div style="display: grid; gap: 10px; margin-top: 15px;">
+          <button onclick="window.open('https://maps.google.com/?q={{ event_location }}', '_blank')" 
+                  style="background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; text-align: left;">
+            🗺️ Open in Maps
+          </button>
+          
+          <button onclick="window.open('https://calendar.google.com', '_blank')" 
+                  style="background: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; text-align: left;">
+            📅 Open Calendar
+          </button>
+          
+          <button onclick="navigator.share({title: '{{ event_summary }}', text: '{{ event_summary }} at {{ event_location }}', url: window.location.href})" 
+                  style="background: var(--success-color); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; text-align: left;">
+            📤 Share Event
+          </button>
+          
+          <button onclick="window.close()" 
+                  style="background: var(--error-color); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; text-align: left;">
+            ✕ Close
+          </button>
+        </div>
+      </div>
+    size: narrow
+
+# Styling to make events more clickable
+event_background_opacity: 5
+vertical_line_width: 4px
+show_location: true
+show_time: true
+event_spacing: 8px
+
+# Visual indicators that events are clickable
+event_font_size: 15px
+event_color: var(--primary-text-color)

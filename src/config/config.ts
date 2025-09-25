@@ -126,6 +126,8 @@ export const DEFAULT_CONFIG: Types.Config = {
   // Actions
   tap_action: { action: 'none' },
   hold_action: { action: 'none' },
+  event_tap_action: undefined,
+  event_hold_action: undefined,
 
   // Cache and refresh settings
   refresh_interval: Constants.CACHE.DEFAULT_DATA_REFRESH_MINUTES,

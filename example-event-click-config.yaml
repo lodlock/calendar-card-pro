@@ -1,0 +1,50 @@
+# Example Calendar Card Pro configuration with event-specific click actions
+type: custom:calendar-card-pro-dev
+
+# Basic configuration
+entities:
+  - calendar.family
+  - calendar.work
+days_to_show: 7
+title: "My Calendar with Event Clicks"
+
+# Card-level actions (existing functionality)
+tap_action:
+  action: expand
+hold_action:
+  action: more-info
+
+# NEW: Event-specific actions
+event_tap_action:
+  action: call-service
+  service: browser_mod.popup
+  service_data:
+    title: "Event Details"
+    content: |
+      <h3>{{ event_summary }}</h3>
+      <p><strong>Start:</strong> {{ event_start }}</p>
+      <p><strong>End:</strong> {{ event_end }}</p>
+      {% if event_location %}
+      <p><strong>Location:</strong> {{ event_location }}</p>
+      {% endif %}
+    size: narrow
+
+event_hold_action:
+  action: call-service
+  service: browser_mod.popup
+  service_data:
+    title: "Event Actions"
+    content: |
+      <h3>{{ event_summary }}</h3>
+      <p>Choose an action for this event:</p>
+      <ul>
+        <li><a href="#" onclick="window.open('https://maps.google.com/?q={{ event_location }}', '_blank')">Open in Maps</a></li>
+        <li><a href="#" onclick="window.open('https://calendar.google.com', '_blank')">Open Calendar</a></li>
+      </ul>
+    size: narrow
+
+# Styling
+event_background_opacity: 10
+vertical_line_width: 3px
+show_location: true
+show_time: true

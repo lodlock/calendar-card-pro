@@ -598,6 +598,10 @@ export function renderDay(
   boundaryInfo?: { isNewWeek: boolean; isNewMonth: boolean },
   weatherForecasts?: Types.WeatherForecasts,
   hass?: Types.Hass | null,
+  eventHandlers?: {
+    eventTap: (event: Types.CalendarEventData, ev: PointerEvent) => void;
+    eventHold: (event: Types.CalendarEventData, ev: PointerEvent) => void;
+  },
 ): TemplateResult {
   // Check if this day is today
   const now = new Date();
@@ -660,7 +664,17 @@ export function renderDay(
         day.events,
         (event, index) => `${event._entityId}-${event.summary}-${index}`,
         (event, index) =>
-          renderEvent(event, day, index, config, language, isToday, weatherForecasts, hass),
+          renderEvent(
+            event,
+            day,
+            index,
+            config,
+            language,
+            isToday,
+            weatherForecasts,
+            hass,
+            eventHandlers,
+          ),
       )}
     </table>
   `;
@@ -676,6 +690,10 @@ export function renderGroupedEvents(
   language: string,
   weatherForecasts?: Types.WeatherForecasts,
   hass?: Types.Hass | null,
+  eventHandlers?: {
+    eventTap: (event: Types.CalendarEventData, ev: PointerEvent) => void;
+    eventHold: (event: Types.CalendarEventData, ev: PointerEvent) => void;
+  },
 ): TemplateResult {
   return html`
     ${days.map((day, index) => {
@@ -736,7 +754,16 @@ export function renderGroupedEvents(
 
       return html`
         ${separator}
-        ${renderDay(day, config, language, prevDay, boundaryInfo, weatherForecasts, hass)}
+        ${renderDay(
+          day,
+          config,
+          language,
+          prevDay,
+          boundaryInfo,
+          weatherForecasts,
+          hass,
+          eventHandlers,
+        )}
       `;
     })}
   `;
@@ -761,6 +788,10 @@ export function renderEvent(
   isToday: boolean,
   weatherForecasts?: Types.WeatherForecasts,
   hass?: Types.Hass | null,
+  eventHandlers?: {
+    eventTap: (event: Types.CalendarEventData, ev: PointerEvent) => void;
+    eventHold: (event: Types.CalendarEventData, ev: PointerEvent) => void;
+  },
 ): TemplateResult {
   // Add CSS class for empty days
   const isEmptyDay = Boolean(event._isEmptyDay);
@@ -904,6 +935,18 @@ export function renderEvent(
       <td
         class=${classMap(eventClasses)}
         style="border-left: var(--calendar-card-line-width-vertical) solid ${entityAccentColor}; background-color: ${entityAccentBackgroundColor};"
+        @click=${eventHandlers?.eventTap
+          ? (ev: MouseEvent) => eventHandlers.eventTap(event, ev as unknown as PointerEvent)
+          : undefined}
+        @contextmenu=${eventHandlers?.eventHold
+          ? (ev: MouseEvent) => {
+              ev.preventDefault();
+              eventHandlers.eventHold(event, ev as unknown as PointerEvent);
+            }
+          : undefined}
+        tabindex="0"
+        role="button"
+        aria-label=${`Event: ${event.summary || 'Untitled event'}`}
       >
         <div class="event-content">
           ${renderEventTitle(event, config, weatherForecasts)}

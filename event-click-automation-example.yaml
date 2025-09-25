@@ -1,0 +1,65 @@
+# Example Home Assistant Automation for Event Click Actions
+# This automation listens for the custom DOM event fired by event clicks
+
+automation:
+  - alias: "Calendar Event Clicked"
+    trigger:
+      - platform: event
+        event_type: calendar-card-event-action
+    action:
+      - service: system_log.write
+        data:
+          message: "Event clicked: {{ trigger.event.detail.event.summary }} at {{ trigger.event.detail.event.location }}"
+          level: info
+      - service: notify.persistent_notification
+        data:
+          title: "Event Clicked"
+          message: |
+            Event: {{ trigger.event.detail.event.summary }}
+            Location: {{ trigger.event.detail.event.location }}
+            Start: {{ trigger.event.detail.event.start.dateTime or trigger.event.detail.event.start.date }}
+            End: {{ trigger.event.detail.event.end.dateTime or trigger.event.detail.event.end.date }}
+
+# Example script that can be called from event actions
+script:
+  log_event_details:
+    alias: "Log Event Details"
+    fields:
+      event_summary:
+        description: "Event summary"
+        example: "Team Meeting"
+      event_location:
+        description: "Event location"
+        example: "Conference Room A"
+      event_start:
+        description: "Event start time"
+        example: "2024-01-15T10:00:00"
+      event_end:
+        description: "Event end time"
+        example: "2024-01-15T11:00:00"
+    sequence:
+      - service: system_log.write
+        data:
+          message: "Event details logged: {{ event_summary }} at {{ event_location }} from {{ event_start }} to {{ event_end }}"
+          level: info
+      - service: browser_mod.popup
+        data:
+          title: "Event Logged"
+          content: |
+            <h3>{{ event_summary }}</h3>
+            <p><strong>Location:</strong> {{ event_location }}</p>
+            <p><strong>Time:</strong> {{ event_start }} - {{ event_end }}</p>
+            <p>Event details have been logged to the system log.</p>
+          size: narrow
+
+# Example input_text to store selected event data
+input_text:
+  selected_event_summary:
+    name: "Selected Event Summary"
+    initial: ""
+  selected_event_location:
+    name: "Selected Event Location"
+    initial: ""
+  selected_event_time:
+    name: "Selected Event Time"
+    initial: ""

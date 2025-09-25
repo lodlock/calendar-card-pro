@@ -1286,6 +1286,14 @@ export class CalendarCardProEditor extends LitElement {
             <h3>${this._getTranslation('hold_action')}</h3>
             ${this._renderActionConfig('hold_action')}
 
+            <!-- Event Tap Action -->
+            <h3>${this._getTranslation('event_tap_action')}</h3>
+            ${this._renderActionConfig('event_tap_action')}
+
+            <!-- Event Hold Action -->
+            <h3>${this._getTranslation('event_hold_action')}</h3>
+            ${this._renderActionConfig('event_hold_action')}
+
             <!-- Refresh Settings -->
             <h3>${this._getTranslation('refresh_settings')}</h3>
             ${this.addTextField(
@@ -1874,12 +1882,16 @@ export class CalendarCardProEditor extends LitElement {
           @closed="${(e: Event) => e.stopPropagation()}"
         >
           <mwc-list-item value="none">${this._getTranslation('none')}</mwc-list-item>
+          <mwc-list-item value="toggle">${this._getTranslation('toggle')}</mwc-list-item>
           <mwc-list-item value="expand">${this._getTranslation('expand')}</mwc-list-item>
           <mwc-list-item value="more-info">${this._getTranslation('more_info')}</mwc-list-item>
           <mwc-list-item value="navigate">${this._getTranslation('navigate')}</mwc-list-item>
           <mwc-list-item value="url">${this._getTranslation('url')}</mwc-list-item>
           <mwc-list-item value="call-service"
             >${this._getTranslation('call_service')}</mwc-list-item
+          >
+          <mwc-list-item value="fire-dom-event"
+            >${this._getTranslation('fire_dom_event')}</mwc-list-item
           >
         </ha-select>
 

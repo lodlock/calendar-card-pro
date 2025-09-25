@@ -156,6 +156,7 @@ class CalendarCardPro extends LitElement {
 
   constructor() {
     super();
+    console.log('🎉 Calendar Card Pro with Event Clicks loaded! Version:', this.constructor.name);
     this._instanceId = Helpers.generateInstanceId();
     Logger.initializeLogger(Constants.VERSION.CURRENT);
   }
@@ -363,14 +364,22 @@ class CalendarCardPro extends LitElement {
     if (this._holdTriggered && this.config.hold_action) {
       Logger.debug('Executing hold action');
       const entityId = Actions.getPrimaryEntityId(this.config.entities);
-      Actions.handleAction(this.config.hold_action, this.safeHass, this, entityId, () =>
-        this.toggleExpanded(),
+      Actions.handleAction(
+        this.config.hold_action,
+        this.safeHass,
+        this as unknown as Element,
+        entityId,
+        () => this.toggleExpanded(),
       );
     } else if (!this._holdTriggered && this.config.tap_action) {
       Logger.debug('Executing tap action');
       const entityId = Actions.getPrimaryEntityId(this.config.entities);
-      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
-        this.toggleExpanded(),
+      Actions.handleAction(
+        this.config.tap_action,
+        this.safeHass,
+        this as unknown as Element,
+        entityId,
+        () => this.toggleExpanded(),
       );
     }
 
@@ -382,6 +391,46 @@ class CalendarCardPro extends LitElement {
     if (this._holdIndicator) {
       Feedback.removeHoldIndicator(this._holdIndicator);
       this._holdIndicator = null;
+    }
+  }
+
+  /**
+   * Handle event tap actions
+   */
+  private _handleEventTap(event: Types.CalendarEventData, ev: PointerEvent) {
+    ev.stopPropagation(); // Prevent card-level tap action
+    console.log('🖱️ Event tapped:', event.summary, 'Action config:', this.config.event_tap_action);
+    if (this.config.event_tap_action) {
+      Logger.debug('Executing event tap action');
+      Actions.handleEventAction(
+        this.config.event_tap_action,
+        this.safeHass,
+        this as unknown as Element,
+        event,
+        event._entityId,
+      );
+    } else {
+      console.log('⚠️ No event_tap_action configured');
+    }
+  }
+
+  /**
+   * Handle event hold actions
+   */
+  private _handleEventHold(event: Types.CalendarEventData, ev: PointerEvent) {
+    ev.stopPropagation(); // Prevent card-level hold action
+    console.log('🖱️ Event held:', event.summary, 'Action config:', this.config.event_hold_action);
+    if (this.config.event_hold_action) {
+      Logger.debug('Executing event hold action');
+      Actions.handleEventAction(
+        this.config.event_hold_action,
+        this.safeHass,
+        this as unknown as Element,
+        event,
+        event._entityId,
+      );
+    } else {
+      console.log('⚠️ No event_hold_action configured');
     }
   }
 
@@ -413,8 +462,12 @@ class CalendarCardPro extends LitElement {
     if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
       const entityId = Actions.getPrimaryEntityId(this.config.entities);
-      Actions.handleAction(this.config.tap_action, this.safeHass, this, entityId, () =>
-        this.toggleExpanded(),
+      Actions.handleAction(
+        this.config.tap_action,
+        this.safeHass,
+        this as unknown as Element,
+        entityId,
+        () => this.toggleExpanded(),
       );
     }
   }
@@ -528,7 +581,9 @@ class CalendarCardPro extends LitElement {
    */
   handleAction(actionConfig: Types.ActionConfig): void {
     const entityId = Actions.getPrimaryEntityId(this.config.entities);
-    Actions.handleAction(actionConfig, this.safeHass, this, entityId, () => this.toggleExpanded());
+    Actions.handleAction(actionConfig, this.safeHass, this as unknown as Element, entityId, () =>
+      this.toggleExpanded(),
+    );
   }
 
   //-----------------------------------------------------------------------------
@@ -548,6 +603,14 @@ class CalendarCardPro extends LitElement {
       pointerUp: (ev: PointerEvent) => this._handlePointerUp(ev),
       pointerCancel: () => this._handlePointerCancel(),
       pointerLeave: () => this._handlePointerCancel(),
+    };
+
+    // Create event handlers for individual events
+    const eventHandlers = {
+      eventTap: (event: Types.CalendarEventData, ev: PointerEvent) =>
+        this._handleEventTap(event, ev),
+      eventHold: (event: Types.CalendarEventData, ev: PointerEvent) =>
+        this._handleEventHold(event, ev),
     };
 
     // Determine card content based on state
@@ -574,6 +637,7 @@ class CalendarCardPro extends LitElement {
         this.effectiveLanguage,
         this.weatherForecasts,
         this.safeHass,
+        eventHandlers,
       );
     } else {
       // Normal state with events - use renderGroupedEvents to handle week numbers and separators
@@ -583,6 +647,7 @@ class CalendarCardPro extends LitElement {
         this.effectiveLanguage,
         this.weatherForecasts,
         this.safeHass,
+        eventHandlers,
       );
     }
 

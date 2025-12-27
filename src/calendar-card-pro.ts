@@ -394,23 +394,92 @@ class CalendarCardPro extends LitElement {
     }
   }
 
+/**
+   * Helper to recursively replace variables in the config object
+   */
+  private _replaceConfigVariables(config: any, variables: Record<string, string>): any {
+    if (typeof config === 'string') {
+      let result = config;
+      for (const [key, value] of Object.entries(variables)) {
+        result = result.split(key).join(value || '');
+      }
+      return result;
+    }
+
+    if (Array.isArray(config)) {
+      return config.map(item => this._replaceConfigVariables(item, variables));
+    }
+
+    if (config && typeof config === 'object') {
+      const result: any = {};
+      for (const key in config) {
+        result[key] = this._replaceConfigVariables(config[key], variables);
+      }
+      return result;
+    }
+
+    return config;
+  }
+
   /**
-   * Handle event tap actions
+   * Handle event tap actions with variable replacement
    */
   private _handleEventTap(event: Types.CalendarEventData, ev: PointerEvent) {
-    ev.stopPropagation(); // Prevent card-level tap action
-    console.log('🖱️ Event tapped:', event.summary, 'Action config:', this.config.event_tap_action);
+    ev.stopPropagation(); 
+
     if (this.config.event_tap_action) {
-      Logger.debug('Executing event tap action');
-      Actions.handleEventAction(
-        this.config.event_tap_action,
-        this.safeHass,
-        this as unknown as Element,
-        event,
-        event._entityId,
-      );
-    } else {
-      console.log('⚠️ No event_tap_action configured');
+      
+      // 1. FIX DATE PARSING (Handle HA Calendar Objects)
+      const startStr = event.start.dateTime || event.start.date;
+      const endStr = event.end.dateTime || event.end.date;
+      const startDate = new Date(startStr);
+      const endDate = new Date(endStr);
+      const isAllDay = !!event.start.date;
+
+      const formattedStart = isAllDay 
+        ? startStr 
+        : startDate.toLocaleTimeString([], {weekday: 'short', hour: '2-digit', minute:'2-digit'});
+        
+      const formattedEnd = isAllDay 
+        ? endStr 
+        : endDate.toLocaleTimeString([], {weekday: 'short', hour: '2-digit', minute:'2-digit'});
+
+      // 2. FIX MAP VISIBILITY (CSS Variable)
+      // If location exists: show it. If not: display: none.
+      const hasLocation = !!event.location;
+      const mapDisplay = hasLocation ? 'display: block;' : 'display: none;';
+      const locationTextDisplay = hasLocation ? 'display: block;' : 'display: none;';
+
+      const variables = {
+        '{{ event_summary }}': event.summary || 'No Title',
+        '{{ event_location }}': event.location || '',
+        '{{ event_start }}': formattedStart,
+        '{{ event_end }}': formattedEnd,
+        '{{ event_description }}': event.description || '',
+        '{{ map_style }}': mapDisplay,           // <--- Controls map visibility
+        '{{ location_style }}': locationTextDisplay 
+      };
+
+      // 3. Replace Variables
+      const processedConfig = this._replaceConfigVariables(this.config.event_tap_action, variables);
+
+      // 4. Fire the Action (Send 'll-custom' for browser_mod)
+      if (processedConfig.action === 'fire-dom-event') {
+        const customEvent = new CustomEvent('ll-custom', {
+          bubbles: true,
+          composed: true,
+          detail: processedConfig
+        });
+        this.dispatchEvent(customEvent);
+      } else {
+        Actions.handleEventAction(
+          processedConfig, 
+          this.safeHass,
+          this as unknown as Element,
+          event,
+          event._entityId,
+        );
+      }
     }
   }
 
@@ -420,10 +489,35 @@ class CalendarCardPro extends LitElement {
   private _handleEventHold(event: Types.CalendarEventData, ev: PointerEvent) {
     ev.stopPropagation(); // Prevent card-level hold action
     console.log('🖱️ Event held:', event.summary, 'Action config:', this.config.event_hold_action);
+    
     if (this.config.event_hold_action) {
-      Logger.debug('Executing event hold action');
+      // 1. Prepare Variables (Same as tap action)
+      const startDate = new Date(event.start);
+      const endDate = new Date(event.end);
+      const isAllDay = event.start.length === 10;
+
+      const formattedStart = isAllDay 
+        ? event.start 
+        : startDate.toLocaleTimeString([], {weekday: 'short', hour: '2-digit', minute:'2-digit'});
+        
+      const formattedEnd = isAllDay 
+        ? event.end 
+        : endDate.toLocaleTimeString([], {weekday: 'short', hour: '2-digit', minute:'2-digit'});
+
+      const variables = {
+        '{{ event_summary }}': event.summary || 'No Title',
+        '{{ event_location }}': event.location || '',
+        '{{ event_start }}': formattedStart,
+        '{{ event_end }}': formattedEnd,
+        '{{ event_description }}': event.description || ''
+      };
+
+      // 2. Replace Variables in Config
+      const processedConfig = this._replaceConfigVariables(this.config.event_hold_action, variables);
+
+      // 3. Fire the Action
       Actions.handleEventAction(
-        this.config.event_hold_action,
+        processedConfig,
         this.safeHass,
         this as unknown as Element,
         event,
@@ -549,13 +643,12 @@ class CalendarCardPro extends LitElement {
         force,
       );
 
-      // Critical: Complete loading state before updating events
-      this.isLoading = false;
-      await this.updateComplete;
-
-      // Finally set events data
+      // Update events first to prevent flash of old content
       this.events = [...eventData];
       this._lastUpdateTime = Date.now();
+
+      // Then clear loading state
+      this.isLoading = false;
 
       Logger.info('Event update completed successfully');
     } catch (error) {
